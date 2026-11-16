@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+  FINANCE
+}
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  name String
+  passwordHash String
+  role Role @default(CUSTOMER)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  seller Seller?
+  addresses Address[]
+  orders Order[]
+  wishlist Wishlist[]
+  cart CartItem[]
+}
+model Session {
+  id String @id @default(uuid())
+  tokenHash String @unique
+  csrf String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
+}
+model Address {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  name String
+  phone String
+  line1 String
+  city String
+  state String
+  pincode String
+  @@index([userId])
+}
+model Seller {
+  id String @id @default(uuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+  businessName String
+  status String @default("PENDING")
+  verification String @default("PENDING")
+  profile Json @default("{}")
+  vacation Boolean @default(false)
+  reason String?
+  createdAt DateTime @default(now())
+  products Product[]
+  suborders Suborder[]
+}
+model Taxon {
+  id String @id @default(uuid())
+  kind String
+  name String
+  slug String
+  active Boolean @default(true)
+  metadata Json @default("{}")
+  @@unique([kind, slug])
+}
+model Product {
+  id String @id @default(uuid())
+  slug String @unique
+  sku String @unique
+  sellerId String
+  seller Seller @relation(fields: [sellerId], references: [id])
+  name String
+  description String
+  categoryId String
+  brandId String
+  fabricId String
+  color String
+  occasion String
+  attributes Json @default("{}")
+  images String[]
+  mrp Int
+  price Int
+  promoBps Int @default(0)
+  stock Int @default(0)
+  reserved Int @default(0)
+  status String @default("DRAFT")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions ProductRevision[]
+  priceRequests PriceRequest[]
+  movements InventoryMovement[]
+  items OrderItem[]
+  wishlist Wishlist[]
+  cart CartItem[]
+  @@index([status, sellerId])
+  @@index([categoryId, price])
+}
+model ProductRevision {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  data Json
+  baseVersion Int
+  status String @default("PENDING")
+  reason String?
+  reviewerId String?
+  createdAt DateTime @default(now())
+}
+model PriceRequest {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  oldPrice Int
+  proposedPrice Int
+  proposedMrp Int
+  baseVersion Int
+  status String @default("PENDING")
+  reason String?
+  reviewerId String?
+  createdAt DateTime @default(now())
+}
+model InventoryMovement {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  actorId String
+  before Int
+  after Int
+  reason String
+  createdAt DateTime @default(now())
+  @@index([productId, createdAt])
+}
+model Banner {
+  id String @id @default(uuid())
+  title String
+  subtitle String
+  image String
+  mobileImage String?
+  cta String
+  destination String
+  position String @default("HERO")
+  sort Int @default(0)
+  active Boolean @default(true)
+  startAt DateTime?
+  endAt DateTime?
+}
+model CmsPage {
+  slug String @id
+  title String
+  body String
+  published Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+model Coupon {
+  id String @id @default(uuid())
+  code String @unique
+  kind String
+  value Int
+  minSpend Int @default(0)
+  maxDiscount Int?
+  limit Int
+  perUser Int @default(1)
+  used Int @default(0)
+  firstOrder Boolean @default(false)
+  active Boolean @default(true)
+  startsAt DateTime
+  endsAt DateTime
+  orders Order[]
+}
+model Wishlist {
+  userId String
+  productId String
+  user User @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  @@id([userId, productId])
+}
+model CartItem {
+  userId String
+  productId String
+  quantity Int
+  user User @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  @@id([userId, productId])
+}
+model Order {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  key String
+  status String @default("PENDING_PAYMENT")
+  paymentStatus String @default("PENDING")
+  address Json
+  subtotal Int
+  discount Int
+  shipping Int
+  total Int
+  couponId String?
+  coupon Coupon? @relation(fields: [couponId], references: [id])
+  couponReleased Boolean @default(false)
+  gatewayOrderId String? @unique
+  gatewayPaymentId String? @unique
+  gatewayAttemptAt DateTime?
+  expiresAt DateTime
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+  suborders Suborder[]
+  refunds Refund[]
+  @@unique([userId, key])
+  @@index([status, expiresAt])
+}
+model Suborder {
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
+  sellerId String
+  seller Seller @relation(fields: [sellerId], references: [id])
+  status String @default("PENDING_PAYMENT")
+  merchandise Int
+  discount Int
+  shipping Int
+  commission Int
+  commissionPolicy Json
+  tracking Json @default("[]")
+  awb String?
+  deliveredAt DateTime?
+  invoiceNumber String? @unique
+  settlementId String?
+  items OrderItem[]
+  @@index([sellerId, status])
+}
+model OrderItem {
+  id String @id @default(uuid())
+  suborderId String
+  suborder Suborder @relation(fields: [suborderId], references: [id])
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  unitPrice Int
+  discount Int
+  snapshot Json
+  reservationState String @default("RESERVED")
+  requests AfterSale[]
+}
+model PaymentEvent {
+  id String @id
+  kind String
+  createdAt DateTime @default(now())
+}
+model AfterSale {
+  id String @id @default(uuid())
+  itemId String
+  item OrderItem @relation(fields: [itemId], references: [id])
+  userId String
+  kind String
+  reason String
+  status String @default("REQUESTED")
+  remarks String?
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+model Refund {
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
+  suborderId String
+  sourceKey String @unique
+  amount Int
+  status String @default("ELIGIBLE")
+  authorizedBy String?
+  gatewayId String? @unique
+  createdAt DateTime @default(now())
+}
+model CommissionRule {
+  id String @id @default(uuid())
+  sellerId String?
+  categoryId String?
+  kind String
+  value Int
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+model Settlement {
+  id String @id @default(uuid())
+  sellerId String
+  week String
+  amount Int
+  status String @default("PENDING")
+  authorizedBy String?
+  reference String?
+  createdAt DateTime @default(now())
+  @@unique([sellerId, week])
+}
+model LedgerEntry {
+  id String @id @default(uuid())
+  key String @unique
+  sellerId String
+  suborderId String
+  debit String
+  credit String
+  amount Int
+  createdAt DateTime @default(now())
+}
+model StockRequest {
+  id String @id @default(uuid())
+  userId String
+  productId String
+  sellerId String
+  quantity Int
+  status String @default("REQUESTED")
+  response Json?
+  createdAt DateTime @default(now())
+  @@index([userId, status])
+}
+model Ticket {
+  id String @id @default(uuid())
+  userId String
+  subject String
+  orderId String?
+  status String @default("OPEN")
+  priority String @default("NORMAL")
+  createdAt DateTime @default(now())
+  messages TicketMessage[]
+}
+model TicketMessage {
+  id String @id @default(uuid())
+  ticketId String
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  userId String
+  body String
+  internal Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+model Review {
+  id String @id @default(uuid())
+  productId String
+  userId String
+  rating Int
+  body String
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  @@unique([productId, userId])
+}
+model Question {
+  id String @id @default(uuid())
+  productId String
+  userId String
+  question String
+  answer String?
+  answeredBy String?
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id String @id @default(uuid())
+  userId String
+  title String
+  body String
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+model PrivacyRequest {
+  id String @id @default(uuid())
+  userId String
+  kind String
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+}
+model Setting {
+  key String @id
+  value Json
+}
+model AuditEvent {
+  id String @id @default(uuid())
+  actorId String
+  action String
+  targetId String
+  data Json
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
+model Outbox {
+  id String @id @default(uuid())
+  key String @unique
+  type String
+  payload Json
+  attempts Int @default(0)
+  processedAt DateTime?
+  availableAt DateTime @default(now())
+  createdAt DateTime @default(now())
+}

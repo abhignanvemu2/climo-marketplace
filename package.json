@@ -1,0 +1,65 @@
+{
+  "name": "climo-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --import tsx scripts/development.ts",
+    "dev:api": "node --import tsx --watch apps/api/src/server.ts",
+    "dev:worker": "node --import tsx --watch apps/worker/src/index.ts",
+    "dev:customer": "vite apps/customer-web --host 0.0.0.0 --port 5173",
+    "dev:seller": "vite apps/seller-portal --host 0.0.0.0 --port 5174",
+    "dev:admin": "vite apps/admin-portal --host 0.0.0.0 --port 5175",
+    "build": "npm run typecheck && vite build apps/customer-web && vite build apps/seller-portal && vite build apps/admin-portal",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:seed": "node --import tsx packages/database/seed.ts",
+    "db:local": "node --import tsx scripts/local-postgres.ts",
+    "provision": "node --import tsx scripts/provision.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:integration": "node --import tsx scripts/test-integration.ts",
+    "start": "node --import tsx apps/api/src/server.ts",
+    "worker": "node --import tsx apps/worker/src/index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@tanstack/react-query": "5.90.7",
+    "bcryptjs": "3.0.3",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.5",
+    "dotenv": "17.2.3",
+    "express": "5.1.0",
+    "express-rate-limit": "8.7.4",
+    "helmet": "8.1.0",
+    "ioredis": "5.8.2",
+    "lucide-react": "0.548.0",
+    "pdfkit": "0.17.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-router-dom": "7.18.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "1.4.9",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.5",
+    "@types/node": "24.10.0",
+    "@types/pdfkit": "0.17.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@types/supertest": "6.0.3",
+    "@vitejs/plugin-react": "5.1.0",
+    "embedded-postgres": "18.1.0-beta.16",
+    "prisma": "6.19.3",
+    "supertest": "7.1.4",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.3.8"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    }
+  }
+}
